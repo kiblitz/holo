@@ -1,0 +1,6 @@
+(library
+ (name jag_test)
+ (inline_tests)
+ (libraries core jag_lib)
+ (preprocess
+  (pps ppx_jane)))
