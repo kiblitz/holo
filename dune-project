@@ -20,9 +20,10 @@
  (synopsis "LLVM targetted programming language")
  (description "Just Another Grammar")
  (depends
+  "core"
+  "core_kernel"
+  ("dune"
+   (>= "3.18.1"))
   ("ocaml"
    (>= "5.3.0"))
-  "core"
-  "ppx_jane"
-  ("dune"
-   (>= "3.18.1"))))
+  "ppx_jane"))

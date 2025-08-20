@@ -1,3 +1,1 @@
-open! Core
-
-let test () = print_s [%message "hello world"]
+module Jag_lexer = Jag_lexer

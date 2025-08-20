@@ -1,7 +1,6 @@
 (library
- (name jag_lib)
- (public_name jag)
+ (name jag_lexer_test)
  (inline_tests)
  (libraries core jag_lexer)
  (preprocess
-  (pps ppx_expect ppx_jane)))
+  (pps ppx_jane)))
