@@ -17,8 +17,9 @@ module Config : sig
   val or_ : t list -> t
 
   module For_testing : sig
+    val sexp_of_t : t -> Sexp.t
     val reduce : t -> t
     val ( mod ) : t -> char -> t
-    val sexp_of_t : t -> Sexp.t
+    val possible_chars : t -> Char.Set.t
   end
 end

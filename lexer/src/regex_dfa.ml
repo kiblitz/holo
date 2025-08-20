@@ -97,9 +97,17 @@ module Config = struct
 
   let or_ ts = builder ts ~leaf:Fn.id ~join:(fun t1 t2 -> Or (t1, t2)) ~default:Empty
 
+  let rec possible_chars = function
+    | Empty | Epsilon -> Char.Set.empty
+    | Char c -> Char.Set.singleton c
+    | Concat (t1, t2) | Or (t1, t2) -> Set.union (possible_chars t1) (possible_chars t2)
+    | Star t -> possible_chars t
+  ;;
+
   module For_testing = struct
+    let sexp_of_t = sexp_of_t
     let reduce = reduce
     let ( mod ) = ( mod )
-    let sexp_of_t = sexp_of_t
+    let possible_chars = possible_chars
   end
 end
