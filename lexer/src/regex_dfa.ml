@@ -123,13 +123,18 @@ module Accepting_state_metadata = struct
 end
 
 type 'a t =
-  { mutable next_nodes : 'a t Char.Map.t
+  { id : int
+  ; mutable next_nodes : 'a t Char.Map.t
   ; mutable accepting_state_metadata : 'a Accepting_state_metadata.t option
   }
 [@@deriving sexp_of]
 
-let make ?(next_nodes = Char.Map.empty) ?(accepting_state_metadata = None) () : 'a t =
-  { next_nodes; accepting_state_metadata }
+let next_id = ref 0
+
+let make ?(next_nodes = Char.Map.empty) ?(accepting_state_metadata = None) () =
+  let curr_id = !next_id in
+  next_id := !next_id + 1;
+  { id = curr_id; next_nodes; accepting_state_metadata }
 ;;
 
 let create (type a) (config : Config.t) ~(cont_of_match : string -> a) : a t =
@@ -161,16 +166,6 @@ let create (type a) (config : Config.t) ~(cont_of_match : string -> a) : a t =
 
 module For_testing = struct
   let sexp_of_t (type a) (sexp_of_a : a -> Sexp.t) (t : a t) =
-    let id_of_t =
-      let ptr_to_id = Int.Table.create () in
-      let next_id = ref 0 in
-      fun t ->
-        let ptr = Obj.magic t in
-        Hashtbl.find_or_add ptr_to_id ptr ~default:(fun () ->
-          let id = !next_id in
-          next_id := !next_id + 1;
-          id)
-    in
     let module Node = struct
       type t =
         | Node of { next_nodes : int Char.Map.t }
@@ -181,8 +176,8 @@ module For_testing = struct
       [@@deriving sexp_of]
     end
     in
-    let node_of_t { next_nodes; accepting_state_metadata } =
-      let next_nodes = Map.map next_nodes ~f:id_of_t in
+    let node_of_t { id = _; next_nodes; accepting_state_metadata } =
+      let next_nodes = Map.map next_nodes ~f:(fun t -> t.id) in
       match accepting_state_metadata with
       | None -> Node.Node { next_nodes }
       | Some accepting_state_metadata ->
@@ -190,7 +185,7 @@ module For_testing = struct
     in
     let graph = Int.Table.create () in
     let rec loop t =
-      let id = id_of_t t in
+      let id = t.id in
       match Hashtbl.find graph id with
       | Some _ -> ()
       | None ->
