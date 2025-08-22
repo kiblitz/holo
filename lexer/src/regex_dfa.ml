@@ -1,14 +1,19 @@
 open! Core
 
 module Config = struct
-  type t =
-    | Empty
-    | Epsilon
-    | Char of char
-    | Concat of t * t
-    | Or of t * t
-    | Star of t
-  [@@deriving sexp_of]
+  module T = struct
+    type t =
+      | Empty
+      | Epsilon
+      | Char of char
+      | Concat of t * t
+      | Or of t * t
+      | Star of t
+    [@@deriving compare, hash, sexp_of]
+  end
+
+  include T
+  include Hashable.Make_plain (T)
 
   let is_empty = function
     | Empty -> true
@@ -52,7 +57,7 @@ module Config = struct
   ;;
 
   let rec ( mod ) t (c : char) =
-    match reduce t with
+    match t with
     | Empty -> Empty
     | Epsilon -> Empty
     | Char c_ when Char.(c = c_) -> Epsilon
@@ -100,7 +105,8 @@ module Config = struct
   let rec possible_chars = function
     | Empty | Epsilon -> Char.Set.empty
     | Char c -> Char.Set.singleton c
-    | Concat (t1, t2) | Or (t1, t2) -> Set.union (possible_chars t1) (possible_chars t2)
+    | Concat (t1, t2) | Or (t1, t2) ->
+      Core.Set.union (possible_chars t1) (possible_chars t2)
     | Star t -> possible_chars t
   ;;
 
@@ -110,4 +116,89 @@ module Config = struct
     let ( mod ) = ( mod )
     let possible_chars = possible_chars
   end
+end
+
+module Accepting_state_metadata = struct
+  type 'a t = { cont_of_match : string -> 'a } [@@deriving sexp_of]
+end
+
+type 'a t =
+  { mutable next_nodes : 'a t Char.Map.t
+  ; mutable accepting_state_metadata : 'a Accepting_state_metadata.t option
+  }
+[@@deriving sexp_of]
+
+let make ?(next_nodes = Char.Map.empty) ?(accepting_state_metadata = None) () : 'a t =
+  { next_nodes; accepting_state_metadata }
+;;
+
+let create (type a) (config : Config.t) ~(cont_of_match : string -> a) : a t =
+  let config = Config.reduce config in
+  let memo_table = Config.Table.create () in
+  let char_universe = Config.possible_chars config in
+  let rec loop (config : Config.t) =
+    Hashtbl.find_or_add memo_table config ~default:(fun () ->
+      let t = make () in
+      Hashtbl.set memo_table ~key:config ~data:t;
+      (* To avoid infinite looping, we mark this config as visited *)
+      let next_nodes =
+        Char.Map.of_key_set char_universe ~f:(fun c ->
+          let next_config = Config.(config mod c |> reduce) in
+          if Config.is_empty next_config then None else Some (loop next_config))
+        |> Map.filter_map ~f:Fn.id
+      in
+      let accepting_state_metadata =
+        if not (Config.contains_epsilon config)
+        then None
+        else Some { Accepting_state_metadata.cont_of_match }
+      in
+      t.next_nodes <- next_nodes;
+      t.accepting_state_metadata <- accepting_state_metadata;
+      t)
+  in
+  loop config
+;;
+
+module For_testing = struct
+  let sexp_of_t (type a) (sexp_of_a : a -> Sexp.t) (t : a t) =
+    let id_of_t =
+      let ptr_to_id = Int.Table.create () in
+      let next_id = ref 0 in
+      fun t ->
+        let ptr = Obj.magic t in
+        Hashtbl.find_or_add ptr_to_id ptr ~default:(fun () ->
+          let id = !next_id in
+          next_id := !next_id + 1;
+          id)
+    in
+    let module Node = struct
+      type t =
+        | Node of { next_nodes : int Char.Map.t }
+        | Accept of
+            { next_nodes : int Char.Map.t
+            ; accepting_state_metadata : a Accepting_state_metadata.t
+            }
+      [@@deriving sexp_of]
+    end
+    in
+    let node_of_t { next_nodes; accepting_state_metadata } =
+      let next_nodes = Map.map next_nodes ~f:id_of_t in
+      match accepting_state_metadata with
+      | None -> Node.Node { next_nodes }
+      | Some accepting_state_metadata ->
+        Node.Accept { next_nodes; accepting_state_metadata }
+    in
+    let graph = Int.Table.create () in
+    let rec loop t =
+      let id = id_of_t t in
+      match Hashtbl.find graph id with
+      | Some _ -> ()
+      | None ->
+        let next_nodes = t.next_nodes in
+        Hashtbl.set graph ~key:id ~data:(node_of_t t);
+        Map.iter next_nodes ~f:loop
+    in
+    loop t;
+    Int.Table.sexp_of_t Node.sexp_of_t graph
+  ;;
 end

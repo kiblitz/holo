@@ -23,3 +23,11 @@ module Config : sig
     val possible_chars : t -> Char.Set.t
   end
 end
+
+type 'a t
+
+val create : Config.t -> cont_of_match:(string -> 'a) -> 'a t
+
+module For_testing : sig
+  val sexp_of_t : ('a -> Sexp.t) -> 'a t -> Sexp.t
+end
