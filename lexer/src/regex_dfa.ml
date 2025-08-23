@@ -119,7 +119,7 @@ module Config = struct
 end
 
 module Accepting_state_metadata = struct
-  type 'a t = { cont_of_match : string -> 'a } [@@deriving sexp_of]
+  type 'a t = { cont_of_match : Buffer.t -> 'a } [@@deriving sexp_of]
 end
 
 type 'a t =
@@ -137,15 +137,15 @@ let make ?(next_nodes = Char.Map.empty) ?(accepting_state_metadata = None) () =
   { id = curr_id; next_nodes; accepting_state_metadata }
 ;;
 
-let create (type a) (config : Config.t) ~(cont_of_match : string -> a) : a t =
+let create (type a) (config : Config.t) ~(cont_of_match : Buffer.t -> a) : a t =
   let config = Config.reduce config in
   let memo_table = Config.Table.create () in
   let char_universe = Config.possible_chars config in
   let rec loop (config : Config.t) =
     Hashtbl.find_or_add memo_table config ~default:(fun () ->
       let t = make () in
-      Hashtbl.set memo_table ~key:config ~data:t;
       (* To avoid infinite looping, we mark this config as visited *)
+      Hashtbl.set memo_table ~key:config ~data:t;
       let next_nodes =
         Char.Map.of_key_set char_universe ~f:(fun c ->
           let next_config = Config.(config mod c |> reduce) in
@@ -163,6 +163,69 @@ let create (type a) (config : Config.t) ~(cont_of_match : string -> a) : a t =
   in
   loop config
 ;;
+
+module Iterator = struct
+  type 'a node = 'a t
+
+  type 'a t =
+    { mutable node : 'a node
+    ; input : Buffer.t
+    ; mutable last_accepting_state_metadata : 'a Accepting_state_metadata.t option
+    ; mutable last_accepting_input_len : int
+    }
+
+  let make ?(initial_input_buffer_size = 16) node =
+    { node
+    ; input = Buffer.create initial_input_buffer_size
+    ; last_accepting_state_metadata = None
+    ; last_accepting_input_len = 0
+    }
+  ;;
+
+  module Result = struct
+    type 'a t =
+      | Incomplete
+      | Complete of
+          { result : 'a
+          ; unused : string
+          }
+      | Failure of { input : string }
+    [@@deriving sexp_of]
+  end
+
+  let next t ~c =
+    let on_finish () =
+      match t.last_accepting_state_metadata with
+      | None ->
+        let input = Buffer.contents t.input in
+        Result.Failure { input }
+      | Some last_accepting_state_metadata ->
+        let unused =
+          let len = Buffer.length t.input - t.last_accepting_input_len in
+          let bytes = Buffer.sub t.input ~pos:t.last_accepting_input_len ~len in
+          Bytes.unsafe_to_string ~no_mutation_while_string_reachable:bytes
+        in
+        let result =
+          Stdlib.Buffer.truncate t.input t.last_accepting_input_len;
+          last_accepting_state_metadata.cont_of_match t.input
+        in
+        Result.Complete { result; unused }
+    in
+    let on_incomplete next_node =
+      t.node <- next_node;
+      Result.Incomplete
+    in
+    (* Preprocessing: we might start in an accepting state *)
+    if Option.is_some t.node.accepting_state_metadata
+    then (
+      t.last_accepting_input_len <- Buffer.length t.input;
+      t.last_accepting_state_metadata <- t.node.accepting_state_metadata);
+    Buffer.add_char t.input c;
+    match Map.find t.node.next_nodes c with
+    | None -> on_finish ()
+    | Some next_node -> on_incomplete next_node
+  ;;
+end
 
 module For_testing = struct
   let sexp_of_t (type a) (sexp_of_a : a -> Sexp.t) (t : a t) =

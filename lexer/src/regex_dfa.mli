@@ -26,7 +26,27 @@ end
 
 type 'a t
 
-val create : Config.t -> cont_of_match:(string -> 'a) -> 'a t
+val create : Config.t -> cont_of_match:(Buffer.t -> 'a) -> 'a t
+
+module Iterator : sig
+  type 'a node := 'a t
+  type 'a t
+
+  val make : ?initial_input_buffer_size:int -> 'a node -> 'a t
+
+  module Result : sig
+    type 'a t =
+      | Incomplete
+      | Complete of
+          { result : 'a
+          ; unused : string
+          }
+      | Failure of { input : string }
+    [@@deriving sexp_of]
+  end
+
+  val next : 'a t -> c:char -> 'a Result.t
+end
 
 module For_testing : sig
   val sexp_of_t : ('a -> Sexp.t) -> 'a t -> Sexp.t
