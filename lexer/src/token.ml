@@ -35,7 +35,7 @@ module Symbol = struct
       | Percent
       | Greater
       | Less
-    [@@deriving enumerate, sexp_of]
+    [@@deriving sexp_of]
   end
 
   module Non_custom = struct
@@ -45,7 +45,7 @@ module Symbol = struct
       | Semicolon
       | Comma
       | Walrus
-    [@@deriving enumerate, sexp_of]
+    [@@deriving sexp_of]
   end
 
   type t =
@@ -58,7 +58,7 @@ module Import = struct
   type t =
     | Open of { allow_unused : bool }
     | Include
-  [@@deriving enumerate, sexp_of]
+  [@@deriving sexp_of]
 end
 
 module Definition = struct
@@ -93,7 +93,7 @@ module Typeful = struct
     | Of
     | Mutable
     | Nonrec
-  [@@deriving enumerate, sexp_of]
+  [@@deriving sexp_of]
 end
 
 module Grouping = struct
@@ -101,7 +101,7 @@ module Grouping = struct
     | Parenthesis of Util.Left_or_right.t
     | Curly_bracket of Util.Left_or_right.t
     | Square_bracket of Util.Left_or_right.t
-  [@@deriving enumerate, sexp_of]
+  [@@deriving sexp_of]
 end
 
 type t =
@@ -116,73 +116,3 @@ type t =
   | Functor
   | With
 [@@deriving sexp_of]
-
-module Template = struct
-  module Identifier = struct
-    type t = unit [@@deriving enumerate, sexp_of]
-  end
-
-  module With_transformation = struct
-    type t = Identifier.t option [@@deriving enumerate, sexp_of]
-  end
-
-  module Constant = struct
-    type t =
-      | Bool of bool
-      | Int of unit
-      | Float of unit
-      | Char of unit
-      | String of unit
-    [@@deriving enumerate, sexp_of]
-  end
-
-  module Symbol = struct
-    module Non_custom = Symbol.Non_custom
-
-    type t =
-      | Base of unit
-      | Non_custom of Non_custom.t
-    [@@deriving enumerate, sexp_of]
-  end
-
-  module Definition = struct
-    type t =
-      | Assign_with_transformation of Identifier.t
-      | Rec
-      | And
-      | In
-      | Module of With_transformation.t
-      | Sig
-      | Struct
-      | End
-      | Val
-    [@@deriving enumerate, sexp_of]
-  end
-
-  module Conditional = struct
-    type t =
-      | If of With_transformation.t
-      | Then
-      | Else
-      | Match of With_transformation.t
-      | When
-      | Function
-    [@@deriving enumerate, sexp_of]
-  end
-
-  module Typeful = Typeful
-  module Grouping = Grouping
-
-  type t =
-    | Constant of Constant.t
-    | Identifier of Identifier.t
-    | Symbol of Symbol.t
-    | Definition of Definition.t
-    | Conditional of Conditional.t
-    | Typeful of Typeful.t
-    | Grouping of Grouping.t
-    | Lambda
-    | Functor
-    | With
-  [@@deriving enumerate, sexp_of]
-end
