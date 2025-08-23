@@ -26,7 +26,8 @@ end
 
 type 'a t
 
-val create : Config.t -> cont_of_match:(Buffer.t -> 'a) -> 'a t
+val create : ?priority:int -> Config.t -> cont_of_match:(Buffer.t -> 'a) -> 'a t
+val merge_list : 'a t Nonempty_list.t -> 'a t
 
 module Iterator : sig
   type 'a node := 'a t

@@ -10,6 +10,18 @@ module Common_config = struct
     Regex_config.concat [ pre_decimal; decimal; post_decimal ]
   ;;
 
+  let identifier =
+    let alphanum_or_underscore =
+      Regex_config.char_or
+        (List.filter Char.all ~f:(fun c -> Char.is_alphanum c || Char.equal c '_'))
+    in
+    let alpha_or_underscore =
+      Regex_config.char_or
+        (List.filter Char.all ~f:(fun c -> Char.is_alpha c || Char.equal c '_'))
+    in
+    Regex_config.concat [ alpha_or_underscore; Star alphanum_or_underscore ]
+  ;;
+
   let phone =
     let any_digit = Regex_config.char_or (List.filter Char.all ~f:Char.is_digit) in
     let digit_group ?(count = 3) () =

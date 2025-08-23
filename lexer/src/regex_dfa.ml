@@ -119,7 +119,12 @@ module Config = struct
 end
 
 module Accepting_state_metadata = struct
-  type 'a t = { cont_of_match : Buffer.t -> 'a } [@@deriving sexp_of]
+  type 'a t =
+    { (* Higher value means higher priority *)
+      priority : int
+    ; cont_of_match : Buffer.t -> 'a
+    }
+  [@@deriving fields ~getters, sexp_of]
 end
 
 type 'a t =
@@ -137,7 +142,9 @@ let make ?(next_nodes = Char.Map.empty) ?(accepting_state_metadata = None) () =
   { id = curr_id; next_nodes; accepting_state_metadata }
 ;;
 
-let create (type a) (config : Config.t) ~(cont_of_match : Buffer.t -> a) : a t =
+let create (type a) ?(priority = 1) (config : Config.t) ~(cont_of_match : Buffer.t -> a)
+  : a t
+  =
   let config = Config.reduce config in
   let memo_table = Config.Table.create () in
   let char_universe = Config.possible_chars config in
@@ -155,7 +162,7 @@ let create (type a) (config : Config.t) ~(cont_of_match : Buffer.t -> a) : a t =
       let accepting_state_metadata =
         if not (Config.contains_epsilon config)
         then None
-        else Some { Accepting_state_metadata.cont_of_match }
+        else Some { Accepting_state_metadata.priority; cont_of_match }
       in
       t.next_nodes <- next_nodes;
       t.accepting_state_metadata <- accepting_state_metadata;
@@ -163,6 +170,43 @@ let create (type a) (config : Config.t) ~(cont_of_match : Buffer.t -> a) : a t =
   in
   loop config
 ;;
+
+let merge t1 t2 =
+  let module Id2 = struct
+    module T = struct
+      type t = int * int [@@deriving compare, hash, sexp_of]
+    end
+
+    include T
+    include Hashable.Make_plain (T)
+  end
+  in
+  let merge_id_table = Id2.Table.create () in
+  let rec loop t1 t2 =
+    let id2 = t1.id, t2.id in
+    Hashtbl.find_or_add merge_id_table id2 ~default:(fun () ->
+      let t = make () in
+      (* To avoid infinite looping, we mark this config as visited *)
+      Hashtbl.set merge_id_table ~key:id2 ~data:t;
+      let next_nodes_merged =
+        Map.merge_skewed t1.next_nodes t2.next_nodes ~combine:(fun ~key:_ node1 node2 ->
+          loop node1 node2)
+      in
+      let accepting_state_metadata_merged =
+        Option.merge
+          t1.accepting_state_metadata
+          t2.accepting_state_metadata
+          ~f:(fun metadata1 metadata2 ->
+            if metadata2.priority > metadata1.priority then metadata2 else metadata1)
+      in
+      t.next_nodes <- next_nodes_merged;
+      t.accepting_state_metadata <- accepting_state_metadata_merged;
+      t)
+  in
+  loop t1 t2
+;;
+
+let merge_list ts = Nonempty_list.reduce ts ~f:merge
 
 module Iterator = struct
   type 'a node = 'a t
