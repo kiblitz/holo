@@ -1,6 +1,6 @@
 (library
- (name jag_lexer)
- (public_name jag.lexer)
+ (name holo_lexer)
+ (public_name holo.lexer)
  (inline_tests)
  (libraries core core_kernel.nonempty_list)
  (preprocess

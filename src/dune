@@ -1,7 +1,7 @@
 (library
- (name jag_lib)
- (public_name jag)
+ (name holo_lib)
+ (public_name holo)
  (inline_tests)
- (libraries core jag_lexer)
+ (libraries core holo_lexer)
  (preprocess
   (pps ppx_expect ppx_jane)))

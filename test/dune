@@ -1,6 +1,6 @@
 (library
- (name jag_test)
+ (name holo_test)
  (inline_tests)
- (libraries core jag_lib)
+ (libraries core holo_lib)
  (preprocess
   (pps ppx_jane)))

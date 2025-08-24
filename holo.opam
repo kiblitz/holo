@@ -2,12 +2,12 @@
 opam-version: "2.0"
 version: "0.0.1"
 synopsis: "LLVM targetted programming language"
-description: "Just Another Grammar"
+description: "LLVM targetted programming language"
 maintainer: ["glee"]
 authors: ["glee"]
 license: "MIT"
-homepage: "https://github.com/kiblitz/jag"
-bug-reports: "https://github.com/kiblitz/jag/issues"
+homepage: "https://github.com/kiblitz/holo"
+bug-reports: "https://github.com/kiblitz/holo/issues"
 depends: [
   "core"
   "core_kernel"
@@ -30,6 +30,6 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/kiblitz/jag.git"
+dev-repo: "git+https://github.com/kiblitz/holo.git"
 x-maintenance-intent: ["(latest)"]
 available: arch != "arm32" & arch != "x86_32"

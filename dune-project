@@ -4,10 +4,10 @@
 
 (generate_opam_files)
 
-(name jag)
+(name holo)
 
 (source
- (github kiblitz/jag))
+ (github kiblitz/holo))
 
 (license MIT)
 
@@ -16,9 +16,9 @@
 (authors glee)
 
 (package
- (name jag)
+ (name holo)
  (synopsis "LLVM targetted programming language")
- (description "Just Another Grammar")
+ (description "LLVM targetted programming language")
  (depends
   "core"
   "core_kernel"

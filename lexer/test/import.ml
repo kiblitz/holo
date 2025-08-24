@@ -1,5 +1,5 @@
 include struct
-  open Jag_lexer
+  open Holo_lexer
   module Lexer = Lexer
   module Regex_config = Regex_dfa.Config
   module Regex_dfa = Regex_dfa

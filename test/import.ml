@@ -1,4 +1,4 @@
 include struct
-  open Jag_lexer
+  open Holo_lexer
   module Token = Token
 end
