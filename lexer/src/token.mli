@@ -71,7 +71,6 @@ module Definition : sig
     | Sig
     | Struct
     | End
-    | Val
   [@@deriving sexp_of]
 end
 
@@ -112,6 +111,7 @@ type t =
   | Conditional of Conditional.t
   | Typeful of Typeful.t
   | Grouping of Grouping.t
+  | Import of Import.t
   | Lambda
   | Functor
   | With
