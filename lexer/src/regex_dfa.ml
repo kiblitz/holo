@@ -228,10 +228,10 @@ module Iterator = struct
 
   module Result = struct
     type 'a t =
-      | Incomplete
+      | Incomplete of { is_accepting_state : bool }
       | Complete of
           { result : 'a
-          ; unused : string
+          ; unused_len : int
           }
       | Failure of { input : string }
     [@@deriving sexp_of]
@@ -244,20 +244,17 @@ module Iterator = struct
         let input = Buffer.contents t.input in
         Result.Failure { input }
       | Some last_accepting_state_metadata ->
-        let unused =
-          let len = Buffer.length t.input - t.last_accepting_input_len in
-          let bytes = Buffer.sub t.input ~pos:t.last_accepting_input_len ~len in
-          Bytes.unsafe_to_string ~no_mutation_while_string_reachable:bytes
-        in
+        let unused_len = Buffer.length t.input - t.last_accepting_input_len in
         let result =
           Stdlib.Buffer.truncate t.input t.last_accepting_input_len;
           last_accepting_state_metadata.cont_of_match t.input
         in
-        Result.Complete { result; unused }
+        Result.Complete { result; unused_len }
     in
     let on_incomplete next_node =
       t.node <- next_node;
       Result.Incomplete
+        { is_accepting_state = Option.is_some next_node.accepting_state_metadata }
     in
     (* Preprocessing: we might start in an accepting state *)
     if Option.is_some t.node.accepting_state_metadata

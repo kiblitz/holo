@@ -88,35 +88,35 @@ let%expect_test "merged dfa iteration (success)" =
   let () =
     let id_iterator = Regex_dfa.Iterator.make merged_dfa in
     print_next_result id_iterator 'F';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result id_iterator 'o';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result id_iterator 'o';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result id_iterator '2';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result id_iterator '\n';
-    [%expect {| (result (Complete (result id:Foo2) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result id:Foo2) (unused_len 1))) |}]
   in
   let () =
     let in_iterator = Regex_dfa.Iterator.make merged_dfa in
     print_next_result in_iterator 'i';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result in_iterator 'n';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result in_iterator '\n';
-    [%expect {| (result (Complete (result in:in) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result in:in) (unused_len 1))) |}]
   in
   let () =
     let int_iterator = Regex_dfa.Iterator.make merged_dfa in
     print_next_result int_iterator 'i';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result int_iterator 'n';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result int_iterator 't';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result int_iterator '\n';
-    [%expect {| (result (Complete (result int:int) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result int:int) (unused_len 1))) |}]
   in
   ()
 ;;

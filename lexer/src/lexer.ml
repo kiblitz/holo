@@ -158,29 +158,37 @@ let token_dfa =
 
 let lex input =
   let module To_process = struct
-    module Text = struct
-      type t =
-        { input : string
-        ; index : int
-        }
+    type t =
+      { input : string
+      ; index : int
+      ; last_accepting_state_index : int option
+      }
+    [@@deriving sexp_of]
 
-      let create input = { input; index = 0 }
-    end
+    let create input = { input; index = 0; last_accepting_state_index = None }
 
-    type t = Text.t list
-
-    let rec next : t -> (t * char) option = function
-      | { Text.input; index } :: rest_of_text ->
-        if index >= String.length input
-        then next rest_of_text
-        else (
-          let char = input.[index] in
-          let t = { Text.input; index = index + 1 } :: rest_of_text in
-          Some (t, char))
-      | [] -> None
+    let next ({ input; index; last_accepting_state_index = _ } as t) =
+      if index < String.length input
+      then (
+        let char = input.[index] in
+        Some ({ t with index = index + 1 }, char))
+      else None
     ;;
 
-    let prepend (t : t) ~(with_ : Text.t) = with_ :: t
+    let update_last_accepting_state t =
+      { t with last_accepting_state_index = Some t.index }
+    ;;
+
+    let reset_source_code_metadata t =
+      let%map.Or_error index =
+        Or_error.of_option
+          t.last_accepting_state_index
+          ~error:
+            (Error.create_s
+               [%message "Applying last accepting state when none exists" (t : t)])
+      in
+      { t with index; last_accepting_state_index = None }
+    ;;
   end
   in
   let rec loop_whitestring to_process =
@@ -194,18 +202,20 @@ let lex input =
     let rec loop to_process =
       (let%map.Option next_to_process, c = To_process.next to_process in
        match Regex_dfa.Iterator.next iterator ~c with
-       | Complete { result; unused } ->
-         let%map.With_errors next_results =
-           loop_whitestring
-             (To_process.prepend next_to_process ~with_:(To_process.Text.create unused))
-         in
-         result :: next_results
+       | Complete { result; unused_len = _ } ->
+         (match To_process.reset_source_code_metadata next_to_process with
+          | Error error -> With_errors.create_error [] error
+          | Ok next_to_process ->
+            let%map.With_errors next_results = loop_whitestring next_to_process in
+            result :: next_results)
        | Failure { input } ->
          With_errors.error_s [] [%message "Failed to lex" (input : string)]
-       | Incomplete -> loop next_to_process)
+       | Incomplete { is_accepting_state = false } -> loop next_to_process
+       | Incomplete { is_accepting_state = true } ->
+         loop (To_process.update_last_accepting_state next_to_process))
       |> Option.value ~default:(With_errors.return [])
     in
     loop to_process
   in
-  loop_whitestring [ To_process.Text.create input ]
+  loop_whitestring (To_process.create input)
 ;;

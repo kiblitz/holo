@@ -20,7 +20,9 @@ end
 include T
 include Monad.Make (T)
 
+let create_error value error = { value; errors = [ error ] }
+
 let error_s value sexp =
   let error = Error.create_s sexp in
-  { value; errors = [ error ] }
+  create_error value error
 ;;

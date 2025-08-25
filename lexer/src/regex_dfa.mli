@@ -37,10 +37,10 @@ module Iterator : sig
 
   module Result : sig
     type 'a t =
-      | Incomplete
+      | Incomplete of { is_accepting_state : bool }
       | Complete of
           { result : 'a
-          ; unused : string
+          ; unused_len : int
           }
       | Failure of { input : string }
     [@@deriving sexp_of]

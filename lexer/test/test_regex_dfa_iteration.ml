@@ -14,15 +14,15 @@ let print_next_result ?(silent = false) iterator c =
 let%expect_test "exact dfa (success)" =
   let iterator = Regex_config.exact "foo " |> to_dfa_iterator in
   print_next_result iterator 'f';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator ' ';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state true))) |}];
   print_next_result iterator '\n';
-  [%expect {| (result (Complete (result "foo ") (unused "\n"))) |}]
+  [%expect {| (result (Complete (result "foo ") (unused_len 1))) |}]
 ;;
 
 let%expect_test "exact dfa (failure)" =
@@ -31,11 +31,11 @@ let%expect_test "exact dfa (failure)" =
   [%expect {| (result (Failure (input z))) |}];
   let iterator = iterator () in
   print_next_result iterator 'f';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
   [%expect {| (result (Failure (input fooo))) |}]
 ;;
@@ -45,23 +45,23 @@ let%expect_test "or dfa (success)" =
   let () =
     let b_iterator = iterator () in
     print_next_result b_iterator 'b';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result b_iterator '\n';
-    [%expect {| (result (Complete (result b) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result b) (unused_len 1))) |}]
   in
   let () =
     let a_iterator = iterator () in
     print_next_result a_iterator 'a';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result a_iterator '\n';
-    [%expect {| (result (Complete (result a) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result a) (unused_len 1))) |}]
   in
   let () =
     let r_iterator = iterator () in
     print_next_result r_iterator 'r';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result r_iterator '\n';
-    [%expect {| (result (Complete (result r) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result r) (unused_len 1))) |}]
   in
   ()
 ;;
@@ -78,19 +78,19 @@ let%expect_test "complex dfa: long unused (success)" =
     |> to_dfa_iterator
   in
   print_next_result iterator 'f';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'o';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state true))) |}];
   print_next_result iterator ' ';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'b';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'a';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result iterator 'h';
-  [%expect {| (result (Complete (result foo) (unused " bah"))) |}]
+  [%expect {| (result (Complete (result foo) (unused_len 4))) |}]
 ;;
 
 let%expect_test "complex dfa: floats (success)" =
@@ -98,28 +98,28 @@ let%expect_test "complex dfa: floats (success)" =
   let () =
     let pi_iterator = iterator () in
     print_next_result pi_iterator '3';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state false))) |}];
     print_next_result pi_iterator '.';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result pi_iterator '1';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result pi_iterator '4';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result pi_iterator '\n';
-    [%expect {| (result (Complete (result 3.14) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result 3.14) (unused_len 1))) |}]
   in
   let () =
     let int_iterator = iterator () in
     print_next_result int_iterator '1';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state false))) |}];
     print_next_result int_iterator '2';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state false))) |}];
     print_next_result int_iterator '3';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state false))) |}];
     print_next_result int_iterator '.';
-    [%expect {| (result Incomplete) |}];
+    [%expect {| (result (Incomplete (is_accepting_state true))) |}];
     print_next_result int_iterator '\n';
-    [%expect {| (result (Complete (result 123.) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result 123.) (unused_len 1))) |}]
   in
   ()
 ;;
@@ -130,11 +130,11 @@ let%expect_test "complex dfa: floats (failure)" =
   [%expect {| (result (Failure (input .))) |}];
   let int_iterator = iterator () in
   print_next_result int_iterator '1';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result int_iterator '2';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result int_iterator '3';
-  [%expect {| (result Incomplete) |}];
+  [%expect {| (result (Incomplete (is_accepting_state false))) |}];
   print_next_result int_iterator '\n';
   [%expect {| (result (Failure (input "123\n"))) |}]
 ;;
@@ -197,10 +197,10 @@ let%expect_test "complex dfa: phone (success)" =
     let straight_with_cc_iterator = iterator () in
     Phone_util.print_cc_result straight_with_cc_iterator;
     Phone_util.print_straight_result straight_with_cc_iterator;
-    [%expect {| (result (Complete (result "+1 1234567890") (unused "\n"))) |}];
+    [%expect {| (result (Complete (result "+1 1234567890") (unused_len 1))) |}];
     let straight_iterator = iterator () in
     Phone_util.print_straight_result straight_iterator;
-    [%expect {| (result (Complete (result 1234567890) (unused "\n"))) |}]
+    [%expect {| (result (Complete (result 1234567890) (unused_len 1))) |}]
   in
   let () =
     let dash_with_cc_iterator = iterator () in
@@ -208,18 +208,18 @@ let%expect_test "complex dfa: phone (success)" =
     Phone_util.print_dash_result dash_with_cc_iterator;
     [%expect
       {|
-    (result Incomplete)
-    (result Incomplete)
-    (result (Complete (result "+1 123-456-7890") (unused "\n")))
-    |}];
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Complete (result "+1 123-456-7890") (unused_len 1)))
+      |}];
     let dash_iterator = iterator () in
     Phone_util.print_dash_result dash_iterator;
     [%expect
       {|
-    (result Incomplete)
-    (result Incomplete)
-    (result (Complete (result 123-456-7890) (unused "\n")))
-    |}]
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Complete (result 123-456-7890) (unused_len 1)))
+      |}]
   in
   let () =
     let paren_with_cc_iterator = iterator () in
@@ -227,22 +227,22 @@ let%expect_test "complex dfa: phone (success)" =
     Phone_util.print_paren_result paren_with_cc_iterator;
     [%expect
       {|
-    (result Incomplete)
-    (result Incomplete)
-    (result Incomplete)
-    (result Incomplete)
-    (result (Complete (result "+1 (123) 456-7890") (unused "\n")))
-    |}];
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Complete (result "+1 (123) 456-7890") (unused_len 1)))
+      |}];
     let paren_iterator = iterator () in
     Phone_util.print_paren_result paren_iterator;
     [%expect
       {|
-    (result Incomplete)
-    (result Incomplete)
-    (result Incomplete)
-    (result Incomplete)
-    (result (Complete (result "(123) 456-7890") (unused "\n")))
-    |}]
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Incomplete (is_accepting_state false)))
+      (result (Complete (result "(123) 456-7890") (unused_len 1)))
+      |}]
   in
   ()
 ;;
