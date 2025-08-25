@@ -1,3 +1,6 @@
 open! Core
 
-val lex : string -> Token.t list With_errors.t
+val lex
+  :  string
+  -> filename:string
+  -> Token.t Source_position.With_section.t list With_errors.t

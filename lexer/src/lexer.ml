@@ -156,43 +156,89 @@ let token_dfa =
   |> Regex_dfa.merge_list
 ;;
 
-let lex input =
+let lex input ~filename =
   let module To_process = struct
     type t =
       { input : string
       ; index : int
-      ; last_accepting_state_index : int option
+      ; start : Source_position.Within_file.t
+      ; current : Source_position.Within_file.t
+      ; last_accepting_state_index_and_position :
+          (* TODO: this should be a labelled tuple *)
+          (int * Source_position.Within_file.t) option
       }
     [@@deriving sexp_of]
 
-    let create input = { input; index = 0; last_accepting_state_index = None }
+    let create input =
+      { input
+      ; index = 0
+      ; start = { line_number = 0; column_number = 0 }
+      ; current = { line_number = 0; column_number = 0 }
+      ; last_accepting_state_index_and_position = None
+      }
+    ;;
 
-    let next ({ input; index; last_accepting_state_index = _ } as t) =
+    let next
+          ?(start_is_current = false)
+          ({ input
+           ; index
+           ; start
+           ; current = { line_number; column_number }
+           ; last_accepting_state_index_and_position = _
+           } as t)
+      =
       if index < String.length input
       then (
         let char = input.[index] in
-        Some ({ t with index = index + 1 }, char))
+        let (current : Source_position.Within_file.t) =
+          match char with
+          | '\n' -> { line_number = line_number + 1; column_number = 0 }
+          | (_ : char) -> { line_number; column_number = column_number + 1 }
+        in
+        Some
+          ( { t with
+              index = index + 1
+            ; start = (if start_is_current then current else start)
+            ; current
+            }
+          , char ))
       else None
     ;;
 
     let update_last_accepting_state t =
-      { t with last_accepting_state_index = Some t.index }
+      { t with last_accepting_state_index_and_position = Some (t.index, t.current) }
     ;;
 
-    let reset_source_code_metadata t =
-      let%map.Or_error index =
+    let result_and_reset t ~result =
+      let%map.Or_error index, source_position =
         Or_error.of_option
-          t.last_accepting_state_index
+          t.last_accepting_state_index_and_position
           ~error:
             (Error.create_s
                [%message "Applying last accepting state when none exists" (t : t)])
       in
-      { t with index; last_accepting_state_index = None }
+      let result =
+        { Source_position.With_section.value = result
+        ; filename
+        ; start = t.start
+        ; end_ = source_position
+        }
+      in
+      (* TODO this should be a labelled tuple *)
+      ( result
+      , { t with
+          index
+        ; start = source_position
+        ; last_accepting_state_index_and_position = None
+        ; current = source_position
+        } )
     ;;
   end
   in
   let rec loop_whitestring to_process =
-    (let%map.Option next_to_process, c = To_process.next to_process in
+    (let%map.Option next_to_process, c =
+       To_process.next ~start_is_current:true to_process
+     in
      if Char.is_whitespace c
      then loop_whitestring next_to_process
      else on_non_whitespace to_process)
@@ -203,9 +249,9 @@ let lex input =
       (let%map.Option next_to_process, c = To_process.next to_process in
        match Regex_dfa.Iterator.next iterator ~c with
        | Complete { result; unused_len = _ } ->
-         (match To_process.reset_source_code_metadata next_to_process with
+         (match To_process.result_and_reset next_to_process ~result with
           | Error error -> With_errors.create_error [] error
-          | Ok next_to_process ->
+          | Ok (result, next_to_process) ->
             let%map.With_errors next_results = loop_whitestring next_to_process in
             result :: next_results)
        | Failure { input } ->
