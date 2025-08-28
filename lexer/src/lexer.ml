@@ -15,14 +15,22 @@ let token_dfa =
     in
     Or (escaped, char_or char_or_unescaped)
   in
-  let identifier =
+  let identifier, big_identifier =
     let alphanum_or_underscore =
       char_or (List.filter Char.all ~f:(fun c -> Char.is_alphanum c || Char.equal c '_'))
     in
-    let alpha_or_underscore =
-      char_or (List.filter Char.all ~f:(fun c -> Char.is_alpha c || Char.equal c '_'))
+    let is_uppercase_alpha c = Char.is_alpha c && Char.is_uppercase c in
+    let is_lowercase_alpha c = Char.is_alpha c && Char.is_lowercase c in
+    let lower_alpha_or_underscore =
+      char_or
+        (List.filter Char.all ~f:(fun c -> is_lowercase_alpha c || Char.equal c '_'))
     in
-    concat [ alpha_or_underscore; Star alphanum_or_underscore ]
+    let upper_alpha_or_underscore =
+      char_or
+        (List.filter Char.all ~f:(fun c -> is_uppercase_alpha c || Char.equal c '_'))
+    in
+    ( concat [ lower_alpha_or_underscore; Star alphanum_or_underscore ]
+    , concat [ upper_alpha_or_underscore; Star alphanum_or_underscore ] )
   in
   let with_transformation ?keyword () =
     let prefix =
@@ -75,9 +83,14 @@ let token_dfa =
     Regex_dfa.create ~priority:0 identifier ~cont_of_match:(fun buffer ->
       let name = Buffer.contents buffer in
       Token.Identifier { name })
+  ; (* Big_identifier *)
+    Regex_dfa.create ~priority:0 big_identifier ~cont_of_match:(fun buffer ->
+      let name = Buffer.contents buffer in
+      Token.Big_identifier { name })
   ; (* Symbol *)
     const_dfa (exact ".") (Token.Symbol (Non_custom Dot))
   ; const_dfa (exact ":") (Token.Symbol (Non_custom Colon))
+  ; const_dfa (exact "::") (Token.Symbol (Non_custom Double_colon))
   ; const_dfa (exact ";") (Token.Symbol (Non_custom Semicolon))
   ; const_dfa (exact ",") (Token.Symbol (Non_custom Comma))
   ; const_dfa (exact ":=") (Token.Symbol (Non_custom Walrus))

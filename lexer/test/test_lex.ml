@@ -57,7 +57,7 @@ let%expect_test "symbols" =
     lex
       {|
 foo = ((a * b)[c] // d |> e f) && (g ** h ^ i @ j) || ($k <~> l%) in
-bar = (m, n) := [o = p; q : r.s] in
+bar = (m, n) := [o = p; q : r.s::t] in
 ();
 |}
   in
@@ -122,8 +122,10 @@ bar = (m, n) := [o = p; q : r.s] in
         ((value (Identifier ((name r)))) (section file.txt:2,28-2,29))
         ((value (Symbol (Non_custom Dot))) (section file.txt:2,29-2,30))
         ((value (Identifier ((name s)))) (section file.txt:2,30-2,31))
-        ((value (Grouping (Square_bracket Right))) (section file.txt:2,31-2,32))
-        ((value (Definition In)) (section file.txt:2,33-2,35))
+        ((value (Symbol (Non_custom Double_colon))) (section file.txt:2,31-2,33))
+        ((value (Identifier ((name t)))) (section file.txt:2,33-2,34))
+        ((value (Grouping (Square_bracket Right))) (section file.txt:2,34-2,35))
+        ((value (Definition In)) (section file.txt:2,36-2,38))
         ((value (Grouping (Parenthesis Left))) (section file.txt:3,0-3,1))
         ((value (Grouping (Parenthesis Right))) (section file.txt:3,1-3,2))
         ((value (Symbol (Non_custom Semicolon))) (section file.txt:3,2-3,3))))
@@ -135,9 +137,9 @@ let%expect_test "import" =
   let tokens =
     lex
       {|
-open! Stdlib
-open Async
-include Import
+open! stdlib
+open async
+include import
 |}
   in
   print_s [%message (tokens : Token.t Source_position.With_section.t list With_errors.t)];
@@ -146,11 +148,11 @@ include Import
     (tokens
      ((value
        (((value (Import (Open (allow_unused true)))) (section file.txt:1,0-1,5))
-        ((value (Identifier ((name Stdlib)))) (section file.txt:1,6-1,12))
+        ((value (Identifier ((name stdlib)))) (section file.txt:1,6-1,12))
         ((value (Import (Open (allow_unused false)))) (section file.txt:2,0-2,4))
-        ((value (Identifier ((name Async)))) (section file.txt:2,5-2,10))
+        ((value (Identifier ((name async)))) (section file.txt:2,5-2,10))
         ((value (Import Include)) (section file.txt:3,0-3,7))
-        ((value (Identifier ((name Import)))) (section file.txt:3,8-3,14))))
+        ((value (Identifier ((name import)))) (section file.txt:3,8-3,14))))
       (errors ())))
     |}]
 ;;
@@ -177,7 +179,7 @@ end
      ((value
        (((value (Definition (Module (((name monad))))))
          (section file.txt:1,0-1,12))
-        ((value (Identifier ((name T)))) (section file.txt:1,13-1,14))
+        ((value (Big_identifier ((name T)))) (section file.txt:1,13-1,14))
         ((value (Symbol (Non_custom Colon))) (section file.txt:1,15-1,16))
         ((value (Definition Sig)) (section file.txt:1,17-1,20))
         ((value (Identifier ((name foo)))) (section file.txt:2,3-2,6))
@@ -249,19 +251,19 @@ y = function
         ((value (Identifier ((name foo)))) (section file.txt:1,10-1,13))
         ((value (Symbol (Non_custom Colon))) (section file.txt:1,13-1,14))
         ((value (Symbol (Base (Pipe)))) (section file.txt:2,4-2,5))
-        ((value (Identifier ((name Some)))) (section file.txt:2,6-2,10))
+        ((value (Big_identifier ((name Some)))) (section file.txt:2,6-2,10))
         ((value (Identifier ((name bar)))) (section file.txt:2,11-2,14))
         ((value (Conditional When)) (section file.txt:2,15-2,19))
         ((value (Identifier ((name bar)))) (section file.txt:2,20-2,23))
         ((value (Symbol (Non_custom Colon))) (section file.txt:2,23-2,24))
         ((value (Constant (Int 10))) (section file.txt:2,25-2,27))
         ((value (Symbol (Base (Pipe)))) (section file.txt:3,4-3,5))
-        ((value (Identifier ((name Some)))) (section file.txt:3,6-3,10))
+        ((value (Big_identifier ((name Some)))) (section file.txt:3,6-3,10))
         ((value (Identifier ((name bar)))) (section file.txt:3,11-3,14))
         ((value (Symbol (Non_custom Colon))) (section file.txt:3,14-3,15))
         ((value (Constant (Int 22))) (section file.txt:3,16-3,18))
         ((value (Symbol (Base (Pipe)))) (section file.txt:4,4-4,5))
-        ((value (Identifier ((name None)))) (section file.txt:4,6-4,10))
+        ((value (Big_identifier ((name None)))) (section file.txt:4,6-4,10))
         ((value (Symbol (Non_custom Colon))) (section file.txt:4,10-4,11))
         ((value (Conditional (If ()))) (section file.txt:4,12-4,14))
         ((value (Constant (Bool true))) (section file.txt:4,15-4,19))
@@ -299,7 +301,7 @@ x ({ foo } as bar) = foo;
        (((value (Typeful Type)) (section file.txt:1,0-1,4))
         ((value (Identifier ((name t)))) (section file.txt:1,5-1,6))
         ((value (Symbol (Base (Equal)))) (section file.txt:1,7-1,8))
-        ((value (Identifier ((name Foo)))) (section file.txt:1,9-1,12))
+        ((value (Big_identifier ((name Foo)))) (section file.txt:1,9-1,12))
         ((value (Typeful Of)) (section file.txt:1,13-1,15))
         ((value (Identifier ((name int)))) (section file.txt:1,16-1,19))
         ((value (Typeful Type)) (section file.txt:2,0-2,4))
@@ -356,7 +358,7 @@ include functor Make with type t := t
         ((value (Symbol (Non_custom Semicolon))) (section file.txt:1,27-1,28))
         ((value (Import Include)) (section file.txt:3,0-3,7))
         ((value Functor) (section file.txt:3,8-3,15))
-        ((value (Identifier ((name Make)))) (section file.txt:3,16-3,20))
+        ((value (Big_identifier ((name Make)))) (section file.txt:3,16-3,20))
         ((value With) (section file.txt:3,21-3,25))
         ((value (Typeful Type)) (section file.txt:3,26-3,30))
         ((value (Identifier ((name t)))) (section file.txt:3,31-3,32))

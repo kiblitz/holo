@@ -4,6 +4,10 @@ module Identifier = struct
   type t = { name : string } [@@deriving sexp_of]
 end
 
+module Big_identifier = struct
+  type t = { name : string } [@@deriving sexp_of]
+end
+
 module With_transformation = struct
   type t = Identifier.t option [@@deriving sexp_of]
 end
@@ -42,6 +46,7 @@ module Symbol = struct
     type t =
       | Dot
       | Colon
+      | Double_colon
       | Semicolon
       | Comma
       | Walrus
@@ -106,6 +111,7 @@ end
 type t =
   | Constant of Constant.t
   | Identifier of Identifier.t
+  | Big_identifier of Big_identifier.t
   | Symbol of Symbol.t
   | Definition of Definition.t
   | Conditional of Conditional.t
