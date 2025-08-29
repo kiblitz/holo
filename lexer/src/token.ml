@@ -102,9 +102,9 @@ end
 
 module Grouping = struct
   type t =
-    | Parenthesis of Util.Left_or_right.t
-    | Curly_bracket of Util.Left_or_right.t
-    | Square_bracket of Util.Left_or_right.t
+    | Parenthesis of Holo_util.Left_or_right.t
+    | Curly_bracket of Holo_util.Left_or_right.t
+    | Square_bracket of Holo_util.Left_or_right.t
   [@@deriving sexp_of]
 end
 

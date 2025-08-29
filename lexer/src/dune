@@ -2,6 +2,6 @@
  (name holo_lexer)
  (public_name holo.lexer)
  (inline_tests)
- (libraries core core_kernel.nonempty_list)
+ (libraries core core_kernel.nonempty_list holo_util)
  (preprocess
   (pps ppx_expect ppx_jane)))

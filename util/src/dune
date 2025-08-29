@@ -1,0 +1,7 @@
+(library
+ (name holo_util)
+ (public_name holo.util)
+ (inline_tests)
+ (libraries core)
+ (preprocess
+  (pps ppx_expect ppx_jane)))
