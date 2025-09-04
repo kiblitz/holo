@@ -88,12 +88,12 @@ let token_dfa =
       let name = Buffer.contents buffer in
       Token.Big_identifier { name })
   ; (* Symbol *)
-    const_dfa (exact ".") (Token.Symbol (Non_custom Dot))
-  ; const_dfa (exact ":") (Token.Symbol (Non_custom Colon))
-  ; const_dfa (exact "::") (Token.Symbol (Non_custom Double_colon))
-  ; const_dfa (exact ";") (Token.Symbol (Non_custom Semicolon))
-  ; const_dfa (exact ",") (Token.Symbol (Non_custom Comma))
-  ; const_dfa (exact ":=") (Token.Symbol (Non_custom Walrus))
+    const_dfa (exact "::") (Token.Symbol (Operator (Non_custom Double_colon)))
+  ; const_dfa (exact ",") (Token.Symbol Comma)
+  ; const_dfa (exact ":") (Token.Symbol Colon)
+  ; const_dfa (exact "!") (Token.Symbol Bang)
+  ; const_dfa (exact ";") (Token.Symbol Semicolon)
+  ; const_dfa (exact ":=") (Token.Symbol Walrus)
   ; Regex_dfa.create
       (plus
          (char_or
@@ -104,7 +104,8 @@ let token_dfa =
           |> String.to_list
           |> Nonempty_list.of_list_exn
           |> Nonempty_list.map ~f:(function
-            | '=' -> Token.Symbol.Base.Equal
+            | '.' -> Token.Symbol.Operator.Base.Dot
+            | '=' -> Equal
             | '~' -> Tilda
             | '@' -> At
             | '^' -> Caret
@@ -120,7 +121,7 @@ let token_dfa =
             | '<' -> Less
             | c -> raise_s [%message "Unexpected base symbol" (c : char)])
         in
-        Token.Symbol (Base base_symbols))
+        Token.Symbol (Operator (Base base_symbols)))
   ; (* Definition *)
     with_transformation_dfa () ~constructor:(fun id ->
       Token.Definition (Assign_with_transformation id))

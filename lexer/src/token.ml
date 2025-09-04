@@ -23,39 +23,44 @@ module Constant = struct
 end
 
 module Symbol = struct
-  module Base = struct
-    type t =
-      | Equal
-      | Tilda
-      | At
-      | Caret
-      | Pipe
-      | Ampersand
-      | Plus
-      | Minus
-      | Times
-      | Div
-      | Dollar
-      | Percent
-      | Greater
-      | Less
-    [@@deriving sexp_of]
-  end
+  module Operator = struct
+    module Base = struct
+      type t =
+        | Dot
+        | Equal
+        | Tilda
+        | At
+        | Caret
+        | Pipe
+        | Ampersand
+        | Plus
+        | Minus
+        | Times
+        | Div
+        | Dollar
+        | Percent
+        | Greater
+        | Less
+      [@@deriving sexp_of]
+    end
 
-  module Non_custom = struct
+    module Non_custom = struct
+      type t = Double_colon [@@deriving sexp_of]
+    end
+
     type t =
-      | Dot
-      | Colon
-      | Double_colon
-      | Semicolon
-      | Comma
-      | Walrus
+      | Base of Base.t Nonempty_list.t
+      | Non_custom of Non_custom.t
     [@@deriving sexp_of]
   end
 
   type t =
-    | Base of Base.t Nonempty_list.t
-    | Non_custom of Non_custom.t
+    | Operator of Operator.t
+    | Bang
+    | Semicolon
+    | Walrus
+    | Colon
+    | Comma
   [@@deriving sexp_of]
 end
 
