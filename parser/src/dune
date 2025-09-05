@@ -1,0 +1,7 @@
+(library
+ (name holo_parser)
+ (public_name holo.parser)
+ (inline_tests)
+ (libraries core core_kernel.nonempty_list holo_lexer holo_util)
+ (preprocess
+  (pps ppx_expect ppx_jane)))
