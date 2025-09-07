@@ -1,4 +1,5 @@
 open! Core
+open Import
 
 module T : sig
   type t [@@deriving sexp_of]
@@ -33,7 +34,7 @@ end
 include T
 
 let submodule = create ~level:12 ~on_ties:Left
-let prefix = create ~level:11 ~on_ties:Left
+let non_neg_prefix = create ~level:11 ~on_ties:Left
 let constructor = create ~level:10 ~on_ties:Right
 let func_apply = create ~level:9 ~on_ties:Left
 let neg = create ~level:8 ~on_ties:Left
@@ -54,6 +55,33 @@ let plus, minus =
 let cmp = create ~level:3 ~on_ties:Left
 let and_ = create ~level:2 ~on_ties:Right
 let or_ = create ~level:1 ~on_ties:Right
+
+let prefix symbol =
+  match (symbol : Token.Symbol.Operator.Base.t Nonempty_list.t) with
+  | [ Minus ] | [ Minus; Dot ] -> neg
+  | _ -> non_neg_prefix
+;;
+
+let infix symbol =
+  match (symbol : Token.Symbol.Operator.t) with
+  | Base (Times :: Times :: _) -> pow
+  | Base (Times :: _) -> times
+  | Base (At :: _) -> at
+  | Base (Div :: _) -> divide
+  | Base (Percent :: _) -> percent
+  | Base (Caret :: _) -> caret
+  | Base (Plus :: _) -> plus
+  | Base (Minus :: _) | Base (Tilda :: _) -> minus
+  | Base [ Ampersand ] | Base [ Ampersand; Ampersand ] -> and_
+  | Base [ Pipe; Pipe ] -> or_
+  | Base (Less :: _)
+  | Base (Equal :: _)
+  | Base (Greater :: _)
+  | Base (Pipe :: _)
+  | Base (Dollar :: _)
+  | Base (Ampersand :: _) -> cmp
+  | Base (Dot :: _) | Non_custom Double_colon -> submodule
+;;
 
 module Comparison_result = struct
   type t =

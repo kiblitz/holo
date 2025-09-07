@@ -62,6 +62,7 @@ module Expr : sig
         ; child : Token.Identifier.t
         }
     | Tuple of { children : t list }
+    | List of { children : t list }
     | With_type of
         { t : t
         ; type_ : t
@@ -82,3 +83,8 @@ module Expr : sig
         }
   [@@deriving sexp_of]
 end
+
+type t =
+  | Expr of Expr.t
+  | Program of { toplevel : Expr.t list }
+[@@deriving sexp_of]

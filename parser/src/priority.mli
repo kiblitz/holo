@@ -1,9 +1,10 @@
 open! Core
+open Import
 
 type t [@@deriving sexp_of]
 
 val submodule : t
-val prefix : t
+val non_neg_prefix : t
 val constructor : t
 val func_apply : t
 val neg : t
@@ -18,6 +19,8 @@ val minus : t
 val cmp : t
 val and_ : t
 val or_ : t
+val prefix : Token.Symbol.Operator.Base.t Nonempty_list.t -> t
+val infix : Token.Symbol.Operator.t -> t
 
 module Comparison_result : sig
   type t =
