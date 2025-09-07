@@ -84,7 +84,4 @@ module Expr : sig
   [@@deriving sexp_of]
 end
 
-type t =
-  | Expr of Expr.t
-  | Program of { toplevel : Expr.t list }
-[@@deriving sexp_of]
+type t = { toplevel : Expr.t list } [@@deriving sexp_of]

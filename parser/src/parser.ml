@@ -1,6 +1,18 @@
 open! Core
 open Import
 
+module Util = struct
+  let validate_unconsumed_tokens_is_empty unconsumed_tokens =
+    if List.is_empty unconsumed_tokens
+    then Ok ()
+    else
+      Or_error.error_s
+        [%message
+          "Fully parsed token stream but ended with non-empty unconsumed tokens"
+            (unconsumed_tokens : Token.t Source_position.With_section.t list)]
+  ;;
+end
+
 module Expr = struct
   module State = struct
     module Stack_component = struct
@@ -49,6 +61,13 @@ module Expr = struct
       }
 
     let init tokens = { stack = []; unconsumed_tokens = tokens }
+  end
+
+  module Result = struct
+    type t =
+      { expr : Ast.Expr.t
+      ; unconsumed_tokens : Token.t Source_position.With_section.t list
+      }
   end
 
   let reduce_stack ?next_priority stack =
@@ -197,7 +216,7 @@ module Expr = struct
     { inner_state with stack = new_stack }
   ;;
 
-  let parse tokens =
+  let parse_raw tokens =
     let rec loop { State.stack; unconsumed_tokens } ~(context : State.Context.t) =
       match unconsumed_tokens with
       | token :: rest_of_tokens ->
@@ -283,16 +302,43 @@ module Expr = struct
     let%bind.Or_error { State.stack; unconsumed_tokens } =
       loop (State.init tokens) ~context:Toplevel
     in
-    let%bind.Or_error expr = reduce_stack_all stack ~context:Toplevel in
-    let%map.Or_error () =
-      if List.is_empty unconsumed_tokens
-      then Ok ()
-      else
-        Or_error.error_s
-          [%message
-            "Fully parsed token stream but ended with non-empty unconsumed tokens"
-              (unconsumed_tokens : Token.t Source_position.With_section.t list)]
-    in
+    let%map.Or_error expr = reduce_stack_all stack ~context:Toplevel in
+    { Result.expr; unconsumed_tokens }
+  ;;
+
+  let parse tokens =
+    let%bind.Or_error { Result.expr; unconsumed_tokens } = parse_raw tokens in
+    let%map.Or_error () = Util.validate_unconsumed_tokens_is_empty unconsumed_tokens in
     expr
+  ;;
+end
+
+module Program = struct
+  module State = struct
+    type t =
+      { rev_toplevel_exprs : Ast.Expr.t list
+      ; unconsumed_tokens : Token.t Source_position.With_section.t list
+      }
+
+    let init tokens = { rev_toplevel_exprs = []; unconsumed_tokens = tokens }
+  end
+
+  let parse tokens =
+    let rec loop { State.rev_toplevel_exprs; unconsumed_tokens } =
+      let%bind.Or_error { Expr.Result.expr; unconsumed_tokens } =
+        Expr.parse_raw unconsumed_tokens
+      in
+      let state =
+        { State.rev_toplevel_exprs = expr :: rev_toplevel_exprs; unconsumed_tokens }
+      in
+      match List.is_empty unconsumed_tokens with
+      | true -> Ok state
+      | false -> loop state
+    in
+    let%bind.Or_error { State.rev_toplevel_exprs; unconsumed_tokens } =
+      loop (State.init tokens)
+    in
+    let%map.Or_error () = Util.validate_unconsumed_tokens_is_empty unconsumed_tokens in
+    { Ast.toplevel = List.rev rev_toplevel_exprs }
   ;;
 end
