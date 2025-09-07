@@ -33,29 +33,32 @@ let%expect_test "tuple mania" =
 ;;
 
 let%expect_test "operator precedence with tuples" =
-  let ast = Util.parse_expr {| x + (y * z) ** foo, alpha (beta, bar 2) |} in
+  let ast = Util.parse_expr {| _ = x + (y * z) ** foo, alpha (beta, bar 2) in () |} in
   print_s [%message (ast : Ast.Expr.t Or_error.t With_errors.t)];
   [%expect
     {|
     (ast
      ((value
        (Ok
-        (Tuple
-         (children
-          ((Infix (symbol (Base (Plus))) (left_t (Id ((name x))))
-            (right_t
-             (Infix (symbol (Base (Times Times)))
-              (left_t
-               (Infix (symbol (Base (Times))) (left_t (Id ((name y))))
-                (right_t (Id ((name z))))))
-              (right_t (Id ((name foo)))))))
-           (Call (caller (Id ((name alpha))))
-            (arg
-             (Tuple
-              (children
-               ((Id ((name beta)))
-                (Call (caller (Id ((name bar))))
-                 (arg (Constant (Constant (Int 2)))))))))))))))
+        (Scope (binding (Pattern Underscore))
+         (to_
+          (Tuple
+           (children
+            ((Infix (symbol (Base (Plus))) (left_t (Id ((name x))))
+              (right_t
+               (Infix (symbol (Base (Times Times)))
+                (left_t
+                 (Infix (symbol (Base (Times))) (left_t (Id ((name y))))
+                  (right_t (Id ((name z))))))
+                (right_t (Id ((name foo)))))))
+             (Call (caller (Id ((name alpha))))
+              (arg
+               (Tuple
+                (children
+                 ((Id ((name beta)))
+                  (Call (caller (Id ((name bar))))
+                   (arg (Constant (Constant (Int 2))))))))))))))
+         (in_ (Constant Unit)))))
       (errors ())))
     |}]
 ;;

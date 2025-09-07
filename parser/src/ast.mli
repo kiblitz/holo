@@ -12,6 +12,7 @@ module Pattern : sig
   type t =
     | Unit
     | Id of Token.Identifier.t
+    | Underscore
     | Variant of
         { tag : Token.Big_identifier.t
         ; payload : t option
@@ -20,24 +21,22 @@ module Pattern : sig
 end
 
 module Value : sig
-  type t =
-    | Id of Token.Identifier.t
-    | Function of
-        { id : Token.Identifier.t
-        ; args : Pattern.t Nonempty_list.t
-        }
-  [@@deriving sexp_of]
+  type t = Id of Token.Identifier.t [@@deriving sexp_of]
 end
 
 module Binding : sig
   type t =
     | Pattern of Pattern.t
-    | Value of Value.t
+    | Function of
+        { id : Token.Identifier.t
+        ; arg : t
+        }
   [@@deriving sexp_of]
 end
 
 module Expr : sig
   type t =
+    | Underscore
     | Id of Token.Identifier.t
     | Constant of Constant.t
     | Call of

@@ -81,6 +81,7 @@ module Definition = struct
     | Sig
     | Struct
     | End
+    | Underscore
   [@@deriving sexp_of]
 end
 

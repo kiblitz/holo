@@ -22,6 +22,11 @@ module State = struct
       Of_expr { priority = Priority.func_apply; f }
     ;;
 
+    let scope binding to_ =
+      let f in_ = Ast.Expr.Scope { binding; to_; in_ } in
+      Of_expr { priority = Priority.scope; f }
+    ;;
+
     let prefix symbol =
       let f expr = Ast.Expr.Prefix { symbol; t = expr } in
       Of_expr { priority = Priority.prefix symbol; f }
@@ -36,6 +41,7 @@ module State = struct
   module Context = struct
     type t =
       | Toplevel
+      | Scope
       | Parenthesis
       | Curly_bracket
       | Square_bracket
@@ -202,35 +208,69 @@ let parse_inner_state
   { inner_state with stack = new_stack }
 ;;
 
+let push_simple_expr_and_parse_rest
+      (expr : Ast.Expr.t)
+      ~stack
+      ~unconsumed_tokens
+      ~context
+      ~parse_function
+  =
+  let%bind.Or_error new_stack =
+    State.Stack_component.Expr expr |> push_expr_onto_stack stack
+  in
+  parse_function { State.stack = new_stack; unconsumed_tokens } ~context
+;;
+
 let parse_raw tokens =
   let rec loop { State.stack; unconsumed_tokens } ~(context : State.Context.t) =
     match unconsumed_tokens with
     | token :: rest_of_tokens ->
       let unconsumed_tokens = rest_of_tokens in
       (match (Source_position.With_section.value token : Token.t) with
+       | Definition Underscore ->
+         push_simple_expr_and_parse_rest
+           Underscore
+           ~stack
+           ~unconsumed_tokens
+           ~context
+           ~parse_function:loop
        | Constant constant ->
-         let%bind.Or_error new_stack =
-           State.Stack_component.Expr (Constant (Constant constant))
-           |> push_expr_onto_stack stack
-         in
-         loop { State.stack = new_stack; unconsumed_tokens } ~context
+         push_simple_expr_and_parse_rest
+           (Constant (Constant constant))
+           ~stack
+           ~unconsumed_tokens
+           ~context
+           ~parse_function:loop
        | Identifier id ->
-         let%bind.Or_error new_stack =
-           State.Stack_component.Expr (Id id) |> push_expr_onto_stack stack
-         in
-         loop { State.stack = new_stack; unconsumed_tokens } ~context
+         push_simple_expr_and_parse_rest
+           (Id id)
+           ~stack
+           ~unconsumed_tokens
+           ~context
+           ~parse_function:loop
        | Big_identifier id ->
+         push_simple_expr_and_parse_rest
+           (Ast.Expr.Variant { tag = id; payload = None })
+           ~stack
+           ~unconsumed_tokens
+           ~context
+           ~parse_function:loop
+       | Symbol (Operator (Base [ Equal ])) ->
+         let%bind.Or_error binding =
+           let%bind.Or_error expr = reduce_stack_all stack ~context in
+           Util.binding_of_expr expr
+         in
+         let%bind.Or_error { State.stack; unconsumed_tokens } =
+           loop (State.init unconsumed_tokens) ~context:Scope
+         in
          let%bind.Or_error new_stack =
-           State.Stack_component.Expr (Ast.Expr.Variant { tag = id; payload = None })
-           |> push_expr_onto_stack stack
+           let%map.Or_error to_expr = reduce_stack_all stack ~context in
+           [ State.Stack_component.scope binding to_expr ]
          in
          loop { State.stack = new_stack; unconsumed_tokens } ~context
        | Symbol (Operator symbol) ->
-         (match symbol with
-          | Base [ Equal ] -> Or_error.error_s [%message "unimplemented"]
-          | symbol ->
-            let%bind.Or_error new_stack = push_symbol_onto_stack stack symbol in
-            loop { State.stack = new_stack; unconsumed_tokens } ~context)
+         let%bind.Or_error new_stack = push_symbol_onto_stack stack symbol in
+         loop { State.stack = new_stack; unconsumed_tokens } ~context
        | Grouping (Parenthesis Left) ->
          let%bind.Or_error state =
            parse_inner_state
@@ -259,7 +299,14 @@ let parse_raw tokens =
          in
          loop state ~context
        | Grouping (Parenthesis Right) ->
-         exit_inner_parse ~stack ~unconsumed_tokens ~context ~expected_context:Parenthesis
+         if List.is_empty stack
+         then Ok { State.stack = [ Expr (Constant Unit) ]; unconsumed_tokens }
+         else
+           exit_inner_parse
+             ~stack
+             ~unconsumed_tokens
+             ~context
+             ~expected_context:Parenthesis
        | Grouping (Curly_bracket Right) ->
          exit_inner_parse
            ~stack
@@ -272,6 +319,8 @@ let parse_raw tokens =
            ~unconsumed_tokens
            ~context
            ~expected_context:Square_bracket
+       | Definition In ->
+         exit_inner_parse ~stack ~unconsumed_tokens ~context ~expected_context:Scope
        | Symbol Comma -> loop { State.stack = Comma :: stack; unconsumed_tokens } ~context
        | Symbol Semicolon -> Ok { State.stack; unconsumed_tokens }
        | Lambda

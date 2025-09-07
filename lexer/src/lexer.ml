@@ -134,6 +134,7 @@ let token_dfa =
   ; const_dfa (exact "sig") (Token.Definition Sig)
   ; const_dfa (exact "struct") (Token.Definition Struct)
   ; const_dfa (exact "end") (Token.Definition End)
+  ; const_dfa (exact "_") (Token.Definition Underscore)
   ; (* Conditional*)
     const_dfa (exact "if") (Token.Conditional (If None))
   ; with_transformation_dfa ~keyword:"if" () ~constructor:(fun id ->

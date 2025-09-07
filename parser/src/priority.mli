@@ -19,6 +19,7 @@ val minus : t
 val cmp : t
 val and_ : t
 val or_ : t
+val scope : t
 val prefix : Token.Symbol.Operator.Base.t Nonempty_list.t -> t
 val infix : Token.Symbol.Operator.t -> t
 

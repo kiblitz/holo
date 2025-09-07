@@ -3,6 +3,29 @@ open! Import
 
 let lex = Lexer.lex ~filename:"file.txt"
 
+let%expect_test "underscore" =
+  let tokens =
+    lex
+      {|
+_ = 5 in ();
+|}
+  in
+  print_s [%message (tokens : Token.t Source_position.With_section.t list With_errors.t)];
+  [%expect
+    {|
+    (tokens
+     ((value
+       (((value (Definition Underscore)) (section file.txt:1,0-1,1))
+        ((value (Symbol (Operator (Base (Equal))))) (section file.txt:1,2-1,3))
+        ((value (Constant (Int 5))) (section file.txt:1,4-1,5))
+        ((value (Definition In)) (section file.txt:1,6-1,8))
+        ((value (Grouping (Parenthesis Left))) (section file.txt:1,9-1,10))
+        ((value (Grouping (Parenthesis Right))) (section file.txt:1,10-1,11))
+        ((value (Symbol Semicolon)) (section file.txt:1,11-1,12))))
+      (errors ())))
+    |}]
+;;
+
 let%expect_test "constants" =
   let tokens =
     lex
@@ -276,7 +299,7 @@ y = function
         ((value (Symbol (Operator (Base (Equal))))) (section file.txt:5,2-5,3))
         ((value (Conditional Function)) (section file.txt:5,4-5,12))
         ((value (Symbol (Operator (Base (Pipe))))) (section file.txt:6,4-6,5))
-        ((value (Identifier ((name _)))) (section file.txt:6,6-6,7))
+        ((value (Definition Underscore)) (section file.txt:6,6-6,7))
         ((value (Symbol (Operator (Base (Minus Greater)))))
          (section file.txt:6,8-6,10))
         ((value (Identifier ((name x)))) (section file.txt:6,11-6,12))

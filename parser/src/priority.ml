@@ -55,6 +55,7 @@ let plus, minus =
 let cmp = create ~level:3 ~on_ties:Left
 let and_ = create ~level:2 ~on_ties:Right
 let or_ = create ~level:1 ~on_ties:Right
+let scope = create ~level:0 ~on_ties:Right
 
 let prefix symbol =
   match (symbol : Token.Symbol.Operator.Base.t Nonempty_list.t) with

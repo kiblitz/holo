@@ -1,6 +1,38 @@
 open! Core
 open Import
 
+let pattern_of_expr expr =
+  let rec loop inner_expr =
+    match (inner_expr : Ast.Expr.t) with
+    | Underscore -> Ok Ast.Pattern.Underscore
+    | Id id -> Ok (Ast.Pattern.Id id)
+    | Constant Unit -> Ok Unit
+    | Variant { tag; payload } ->
+      (match payload with
+       | None -> Ok (Variant { tag; payload = None })
+       | Some payload ->
+         let%map.Or_error payload = loop payload in
+         Ast.Pattern.Variant { tag; payload = Some payload })
+    | _ ->
+      Or_error.error_s
+        [%message "Failed to convert expression to a binding" (expr : Ast.Expr.t)]
+  in
+  loop expr
+;;
+
+let binding_of_expr expr =
+  let rec loop inner_expr =
+    match (inner_expr : Ast.Expr.t) with
+    | Call { caller = Id id; arg } ->
+      let%map.Or_error arg = loop arg in
+      Ast.Binding.Function { id; arg }
+    | _ ->
+      let%map.Or_error pattern = pattern_of_expr inner_expr in
+      Ast.Binding.Pattern pattern
+  in
+  loop expr
+;;
+
 let validate_unconsumed_tokens_is_empty unconsumed_tokens =
   if List.is_empty unconsumed_tokens
   then Ok ()

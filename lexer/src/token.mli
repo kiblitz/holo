@@ -81,6 +81,7 @@ module Definition : sig
     | Sig
     | Struct
     | End
+    | Underscore
   [@@deriving sexp_of]
 end
 
