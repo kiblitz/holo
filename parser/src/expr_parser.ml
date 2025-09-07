@@ -13,7 +13,7 @@ module State = struct
     [@@deriving sexp_of]
 
     let constructor id =
-      let f payload = Ast.Expr.Construct { constructor = id; payload } in
+      let f payload = Ast.Expr.Variant { tag = id; payload = Some payload } in
       Of_expr { priority = Priority.constructor; f }
     ;;
 
@@ -123,12 +123,15 @@ let reduce_stack_all stack ~(context : State.Context.t) =
 *)
 let rec push_expr_onto_stack stack expr =
   match (stack : State.Stack_component.t list) with
-  | Expr caller :: rest_of_stack ->
-    let priority = Priority.func_apply in
+  | Expr caller_or_constructor :: rest_of_stack ->
+    let priority, of_expr =
+      match caller_or_constructor with
+      | Variant { tag; payload = None } ->
+        Priority.constructor, State.Stack_component.constructor tag
+      | caller -> Priority.func_apply, State.Stack_component.func_apply caller
+    in
     (match%bind.Or_error reduce_stack ~next_priority:priority stack with
-     | None ->
-       let func_apply = State.Stack_component.func_apply caller in
-       Ok (expr :: func_apply :: rest_of_stack)
+     | None -> Ok (expr :: of_expr :: rest_of_stack)
      | Some reduced_stack -> push_expr_onto_stack reduced_stack expr)
   | stack -> Ok (expr :: stack)
 ;;
@@ -218,12 +221,16 @@ let parse_raw tokens =
          loop { State.stack = new_stack; unconsumed_tokens } ~context
        | Big_identifier id ->
          let%bind.Or_error new_stack =
-           State.Stack_component.constructor id |> push_expr_onto_stack stack
+           State.Stack_component.Expr (Ast.Expr.Variant { tag = id; payload = None })
+           |> push_expr_onto_stack stack
          in
          loop { State.stack = new_stack; unconsumed_tokens } ~context
        | Symbol (Operator symbol) ->
-         let%bind.Or_error new_stack = push_symbol_onto_stack stack symbol in
-         loop { State.stack = new_stack; unconsumed_tokens } ~context
+         (match symbol with
+          | Base [ Equal ] -> Or_error.error_s [%message "unimplemented"]
+          | symbol ->
+            let%bind.Or_error new_stack = push_symbol_onto_stack stack symbol in
+            loop { State.stack = new_stack; unconsumed_tokens } ~context)
        | Grouping (Parenthesis Left) ->
          let%bind.Or_error state =
            parse_inner_state

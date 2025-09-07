@@ -12,9 +12,9 @@ module Pattern = struct
   type t =
     | Unit
     | Id of Token.Identifier.t
-    | Construct of
-        { constructor : Token.Big_identifier.t
-        ; payload : t
+    | Variant of
+        { tag : Token.Big_identifier.t
+        ; payload : t option
         }
   [@@deriving sexp_of]
 end
@@ -44,9 +44,9 @@ module Expr = struct
         { caller : t
         ; arg : t
         }
-    | Construct of
-        { constructor : Token.Big_identifier.t
-        ; payload : t
+    | Variant of
+        { tag : Token.Big_identifier.t
+        ; payload : t option
         }
     | Prefix of
         { symbol : Token.Symbol.Operator.Base.t Nonempty_list.t

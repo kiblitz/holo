@@ -16,15 +16,17 @@ let%expect_test "func apply" =
 ;;
 
 let%expect_test "construction" =
-  let ast = Util.parse_expr {| X Y z |} in
+  let ast = Util.parse_expr {| X Y Z |} in
   print_s [%message (ast : Ast.Expr.t Or_error.t With_errors.t)];
   [%expect
     {|
     (ast
      ((value
        (Ok
-        (Construct (constructor ((name X)))
-         (payload (Construct (constructor ((name Y))) (payload (Id ((name z)))))))))
+        (Variant (tag ((name X)))
+         (payload
+          ((Variant (tag ((name Y)))
+            (payload ((Variant (tag ((name Z))) (payload ()))))))))))
       (errors ())))
     |}]
 ;;
@@ -43,11 +45,10 @@ let%expect_test "func apply and construction" =
            (caller
             (Call (caller (Id ((name foo))))
              (arg
-              (Construct (constructor ((name X)))
+              (Variant (tag ((name X)))
                (payload
-                (Construct (constructor ((name Y)))
-                 (payload (Id ((name alpha))))))))))
-           (arg (Construct (constructor ((name Z))) (payload (Id ((name bar))))))))
+                ((Variant (tag ((name Y))) (payload ((Id ((name alpha))))))))))))
+           (arg (Variant (tag ((name Z))) (payload ((Id ((name bar)))))))))
          (arg (Id ((name beta)))))))
       (errors ())))
     |}]
