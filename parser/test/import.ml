@@ -11,5 +11,6 @@ end
 include struct
   open Holo_parser
   module Ast = Ast
+  module Expr_parser = Expr_parser
   module Parser = Parser
 end
