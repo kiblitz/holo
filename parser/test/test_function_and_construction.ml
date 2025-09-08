@@ -39,7 +39,7 @@ let%expect_test "func apply and construction" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Pattern Underscore))
+        (Scope (binding (Recursive (Pattern Underscore)))
          (to_
           (Call
            (caller

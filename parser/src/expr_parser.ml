@@ -324,6 +324,7 @@ let parse_raw tokens =
        | Symbol Comma -> loop { State.stack = Comma :: stack; unconsumed_tokens } ~context
        | Symbol Semicolon -> Ok { State.stack; unconsumed_tokens }
        | Lambda
+       | Op
        | Functor
        | With
        | Symbol _

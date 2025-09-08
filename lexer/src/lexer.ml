@@ -165,6 +165,7 @@ let token_dfa =
   ; const_dfa (exact "include") (Token.Import Include)
   ; (* Misc *)
     const_dfa (exact "lambda") Token.Lambda
+  ; const_dfa (exact "op") Token.Op
   ; const_dfa (exact "functor") Token.Functor
   ; const_dfa (exact "with") Token.With
   ]

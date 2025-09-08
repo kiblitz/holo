@@ -20,17 +20,23 @@ let pattern_of_expr expr =
   loop expr
 ;;
 
-let binding_of_expr expr =
-  let rec loop inner_expr =
+let binding_of_expr (expr : Ast.Expr.t) =
+  let rec recursive inner_expr =
     match (inner_expr : Ast.Expr.t) with
     | Call { caller = Id id; arg } ->
-      let%map.Or_error arg = loop arg in
-      Ast.Binding.Function { id; arg }
+      let%map.Or_error arg = recursive arg in
+      Ast.Binding.Recursive.Function { id; arg }
     | _ ->
       let%map.Or_error pattern = pattern_of_expr inner_expr in
-      Ast.Binding.Pattern pattern
+      Ast.Binding.Recursive.Pattern pattern
   in
-  loop expr
+  match expr with
+  | Call { caller = Op { symbol }; arg } ->
+    let%map.Or_error arg = recursive arg in
+    Ast.Binding.Op_overload { op = symbol; arg }
+  | expr ->
+    let%map.Or_error binding = recursive expr in
+    Ast.Binding.Recursive binding
 ;;
 
 let validate_unconsumed_tokens_is_empty unconsumed_tokens =

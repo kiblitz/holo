@@ -33,6 +33,7 @@ end
 
 include T
 
+let op = create ~level:13 ~on_ties:Left
 let submodule = create ~level:12 ~on_ties:Left
 let non_neg_prefix = create ~level:11 ~on_ties:Left
 let constructor = create ~level:10 ~on_ties:Right

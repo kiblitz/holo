@@ -125,6 +125,7 @@ type t =
   | Grouping of Grouping.t
   | Import of Import.t
   | Lambda
+  | Op
   | Functor
   | With
 [@@deriving sexp_of]

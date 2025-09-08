@@ -3,6 +3,7 @@ open Import
 
 type t [@@deriving sexp_of]
 
+val op : t
 val submodule : t
 val non_neg_prefix : t
 val constructor : t

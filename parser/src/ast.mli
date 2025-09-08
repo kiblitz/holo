@@ -25,11 +25,21 @@ module Value : sig
 end
 
 module Binding : sig
+  module Recursive : sig
+    type t =
+      | Pattern of Pattern.t
+      | Function of
+          { id : Token.Identifier.t
+          ; arg : t
+          }
+    [@@deriving sexp_of]
+  end
+
   type t =
-    | Pattern of Pattern.t
-    | Function of
-        { id : Token.Identifier.t
-        ; arg : t
+    | Recursive of Recursive.t
+    | Op_overload of
+        { op : Token.Symbol.Operator.t
+        ; arg : Recursive.t
         }
   [@@deriving sexp_of]
 end
@@ -47,6 +57,7 @@ module Expr : sig
         { tag : Token.Big_identifier.t
         ; payload : t option
         }
+    | Op of { symbol : Token.Symbol.Operator.t }
     | Prefix of
         { symbol : Token.Symbol.Operator.Base.t Nonempty_list.t
         ; t : t
