@@ -40,7 +40,7 @@ let%expect_test "operator precedence with tuples" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (Tuple
            (children

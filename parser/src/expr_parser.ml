@@ -10,6 +10,7 @@ module State = struct
           ; f : Ast.Expr.t -> Ast.Expr.t
           }
       | Comma
+      | Op
     [@@deriving sexp_of]
 
     let constructor id =
@@ -86,6 +87,9 @@ let reduce_stack ?next_priority stack =
   | Comma :: _ ->
     Or_error.error_s
       [%message "Cannot reduce a comma" (stack : State.Stack_component.t list)]
+  | Op :: _ ->
+    Or_error.error_s
+      [%message "Cannot reduce an op" (stack : State.Stack_component.t list)]
   | Expr _ :: _ ->
     Or_error.error_s
       [%message
@@ -153,6 +157,7 @@ let rec push_expr_onto_stack stack expr =
 *)
 let rec push_symbol_onto_stack stack symbol =
   match (stack : State.Stack_component.t list) with
+  | Op :: rest_of_stack -> Ok (State.Stack_component.Expr (Op { symbol }) :: rest_of_stack)
   | Of_expr _ :: _ | Comma :: _ | [] ->
     (match symbol with
      | Token.Symbol.Operator.Base symbol ->
@@ -323,8 +328,8 @@ let parse_raw tokens =
          exit_inner_parse ~stack ~unconsumed_tokens ~context ~expected_context:Scope
        | Symbol Comma -> loop { State.stack = Comma :: stack; unconsumed_tokens } ~context
        | Symbol Semicolon -> Ok { State.stack; unconsumed_tokens }
+       | Op -> loop { State.stack = Op :: stack; unconsumed_tokens } ~context
        | Lambda
-       | Op
        | Functor
        | With
        | Symbol _

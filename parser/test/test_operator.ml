@@ -9,7 +9,7 @@ let%expect_test "operator precedence" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (Infix (symbol (Base (Plus)))
            (left_t (Prefix (symbol (Minus)) (t (Id ((name x))))))
@@ -37,7 +37,7 @@ let%expect_test "operator precedence with parens" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (Infix (symbol (Base (Plus)))
            (left_t (Prefix (symbol (Minus)) (t (Id ((name x))))))

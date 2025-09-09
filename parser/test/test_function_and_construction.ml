@@ -39,7 +39,7 @@ let%expect_test "func apply and construction" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (Call
            (caller
@@ -53,6 +53,60 @@ let%expect_test "func apply and construction" =
              (arg (Variant (tag ((name Z))) (payload ((Id ((name bar)))))))))
            (arg (Id ((name beta))))))
          (in_ (Constant Unit)))))
+      (errors ())))
+    |}]
+;;
+
+let%expect_test "func define" =
+  let ast = Util.parse_expr {| foo x y z = bar in foo 1 2 3 |} in
+  print_s [%message (ast : Ast.Expr.t Or_error.t With_errors.t)];
+  [%expect
+    {|
+    (ast
+     ((value
+       (Ok
+        (Scope
+         (binding
+          (Function (id ((name foo)))
+           (args ((Id ((name x))) (Id ((name y))) (Id ((name z)))))))
+         (to_ (Id ((name bar))))
+         (in_
+          (Call
+           (caller
+            (Call
+             (caller
+              (Call (caller (Id ((name foo))))
+               (arg (Constant (Constant (Int 1))))))
+             (arg (Constant (Constant (Int 2))))))
+           (arg (Constant (Constant (Int 3)))))))))
+      (errors ())))
+    |}]
+;;
+
+let%expect_test "func define with construction" =
+  let ast = Util.parse_expr {| foo () (Alpha a) Beta = bar in foo () (Alpha 1) Beta |} in
+  print_s [%message (ast : Ast.Expr.t Or_error.t With_errors.t)];
+  [%expect
+    {|
+    (ast
+     ((value
+       (Ok
+        (Scope
+         (binding
+          (Function (id ((name foo)))
+           (args
+            (Unit (Variant (tag ((name Alpha))) (payload ((Id ((name a))))))
+             (Variant (tag ((name Beta))) (payload ()))))))
+         (to_ (Id ((name bar))))
+         (in_
+          (Call
+           (caller
+            (Call
+             (caller (Call (caller (Id ((name foo)))) (arg (Constant Unit))))
+             (arg
+              (Variant (tag ((name Alpha)))
+               (payload ((Constant (Constant (Int 1)))))))))
+           (arg (Variant (tag ((name Beta))) (payload ()))))))))
       (errors ())))
     |}]
 ;;

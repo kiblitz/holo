@@ -20,26 +20,16 @@ module Pattern : sig
   [@@deriving sexp_of]
 end
 
-module Value : sig
-  type t = Id of Token.Identifier.t [@@deriving sexp_of]
-end
-
 module Binding : sig
-  module Recursive : sig
-    type t =
-      | Pattern of Pattern.t
-      | Function of
-          { id : Token.Identifier.t
-          ; arg : t
-          }
-    [@@deriving sexp_of]
-  end
-
   type t =
-    | Recursive of Recursive.t
+    | Pattern of Pattern.t
+    | Function of
+        { id : Token.Identifier.t
+        ; args : Pattern.t Nonempty_list.t
+        }
     | Op_overload of
         { op : Token.Symbol.Operator.t
-        ; arg : Recursive.t
+        ; args : Pattern.t Nonempty_list.t
         }
   [@@deriving sexp_of]
 end

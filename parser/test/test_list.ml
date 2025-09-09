@@ -34,7 +34,7 @@ let%expect_test "list of exprs" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (List
            (children
@@ -56,7 +56,7 @@ let%expect_test "list of a tuple" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (List
            (children
@@ -81,7 +81,7 @@ let%expect_test "list of tuples" =
     (ast
      ((value
        (Ok
-        (Scope (binding (Recursive (Pattern Underscore)))
+        (Scope (binding (Pattern Underscore))
          (to_
           (List
            (children

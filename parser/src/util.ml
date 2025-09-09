@@ -21,22 +21,37 @@ let pattern_of_expr expr =
 ;;
 
 let binding_of_expr (expr : Ast.Expr.t) =
-  let rec recursive inner_expr =
-    match (inner_expr : Ast.Expr.t) with
+  let module Function_or_op_overload = struct
+    type t =
+      | Function of Token.Identifier.t
+      | Op_overload of Token.Symbol.Operator.t
+  end
+  in
+  let rec get_args (inner_expr : Ast.Expr.t) =
+    match inner_expr with
     | Call { caller = Id id; arg } ->
-      let%map.Or_error arg = recursive arg in
-      Ast.Binding.Recursive.Function { id; arg }
+      let%map.Or_error arg = pattern_of_expr arg in
+      Function_or_op_overload.Function id, Nonempty_list.singleton arg
+    | Call { caller = Op { symbol }; arg } ->
+      let%map.Or_error arg = pattern_of_expr arg in
+      Function_or_op_overload.Op_overload symbol, Nonempty_list.singleton arg
+    | Call { caller; arg } ->
+      let%bind.Or_error function_or_op_overload, args = get_args caller in
+      let%map.Or_error arg = pattern_of_expr arg in
+      function_or_op_overload, Nonempty_list.cons arg args
     | _ ->
-      let%map.Or_error pattern = pattern_of_expr inner_expr in
-      Ast.Binding.Recursive.Pattern pattern
+      Or_error.error_s [%message "Cannot get args for a non-call" (expr : Ast.Expr.t)]
   in
   match expr with
-  | Call { caller = Op { symbol }; arg } ->
-    let%map.Or_error arg = recursive arg in
-    Ast.Binding.Op_overload { op = symbol; arg }
+  | Call _ ->
+    (match%map.Or_error get_args expr with
+     | Function_or_op_overload.Function id, rev_args ->
+       Ast.Binding.Function { id; args = Nonempty_list.reverse rev_args }
+     | Op_overload op, rev_args ->
+       Ast.Binding.Op_overload { op; args = Nonempty_list.reverse rev_args })
   | expr ->
-    let%map.Or_error binding = recursive expr in
-    Ast.Binding.Recursive binding
+    let%map.Or_error pattern = pattern_of_expr expr in
+    Ast.Binding.Pattern pattern
 ;;
 
 let validate_unconsumed_tokens_is_empty unconsumed_tokens =
